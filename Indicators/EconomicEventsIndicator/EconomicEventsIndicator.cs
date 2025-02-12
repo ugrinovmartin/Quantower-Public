@@ -7,7 +7,7 @@ using TradingPlatform.BusinessLayer;
 
 namespace EconomicEventsIndicator
 {
-    public class EconomicEventsIndicator : Indicator
+    public partial class EconomicEventsIndicator : Indicator
     {
         public int dateMode = 1;
         public DateTime customStartDate = DateTime.UtcNow.Date;
@@ -33,20 +33,16 @@ namespace EconomicEventsIndicator
         public Font font;
         private readonly object lockObject = new object();
 
-        public int newsPositionX = 500;
+        public int newsPositionX = 300;
         public int newsPositionY = 10;
 
-        private SettingsManager settingsManager;
 
         public EconomicEventsIndicator()
-            : base()
+        : base()
         {
             Name = "Economic Events Indicator";
             Description = "Display Economic Events";
-
             SeparateWindow = false;
-
-            settingsManager = new SettingsManager(this);
         }
 
         protected override void OnInit()
@@ -63,9 +59,9 @@ namespace EconomicEventsIndicator
 
             Task.Run(() => FetchAndFilterData());
         }
-
         protected override void OnUpdate(UpdateArgs args)
         {
+            TradingPlatform.BusinessLayer.TimeZone chartTimeZone = CurrentChart.CurrentTimeZone;
         }
 
         private async Task FetchAndFilterData()
@@ -74,13 +70,13 @@ namespace EconomicEventsIndicator
 
             List<ForexEvent> events = new List<ForexEvent>();
 
-            if (dateMode == 1) // Current Chart Date
+            if (dateMode == 1) 
             {
                 string date = currentDate.ToString("MMMdd.yyyy").ToLower();
                 string url = $"https://www.forexfactory.com/calendar?day={date}";
                 events = await ForexFactoryScraper.GetForexFactoryEvents(url);
             }
-            else if (dateMode == 2 && customStartDate != DateTime.MinValue && customEndDate != DateTime.MinValue) // Custom Date
+            else if (dateMode == 2 && customStartDate != DateTime.MinValue && customEndDate != DateTime.MinValue) 
             {
                 DateTime startDate = customStartDate;
                 DateTime endDate = customEndDate;
@@ -98,13 +94,24 @@ namespace EconomicEventsIndicator
                 }
             }
 
-            TimeZoneInfo selectedTimeZone = (timeZoneMode == 1)
-                ? TimeZoneHelper.GetTimeZoneFromChart(CurrentChart.CurrentTimeZone.ToString())
-                : TimeZoneInfo.Local;
+            double offsetHours;
+            if (timeZoneMode == 1)
+            {
+                //Core.Instance.Loggers.Log($"Using Chart TimeZone: {CurrentChart.CurrentTimeZone}"); 
+                offsetHours = TimeZoneHelper.GetOffsetHours(CurrentChart.CurrentTimeZone);
+            }
+            else
+            {
+                offsetHours = TimeZoneInfo.Local.BaseUtcOffset.TotalHours;
+            }
+
+            //Core.Instance.Loggers.Log($"Offset Hours: {offsetHours}");
 
             lock (lockObject)
             {
-                forexEvents = events.Select(e => TimeZoneHelper.AdjustEventTime(e, selectedTimeZone)).Where(ShouldIncludeEvent).ToList();
+                forexEvents = events.Select(e => TimeZoneHelper.AdjustEventTime(e, offsetHours))
+                                   .Where(ShouldIncludeEvent)
+                                   .ToList();
             }
 
             this.CurrentChart.Refresh();
@@ -141,7 +148,6 @@ namespace EconomicEventsIndicator
 
             return true;
         }
-
         public override void OnPaintChart(PaintChartEventArgs args)
         {
             base.OnPaintChart(args);
@@ -189,13 +195,35 @@ namespace EconomicEventsIndicator
                         _ => Brushes.White
                     };
 
-                    gr.DrawString($"{forexEvent.Time} {forexEvent.Currency} ", font, Brushes.White, x + 2, y + 2);
+                    gr.DrawString($"{forexEvent.Time} {forexEvent.Currency}", font, Brushes.White, x + 2, y + 2);
+
                     gr.DrawString($"{forexEvent.Event}", font, impactBrush, x + 100, y + 2);
+
+                    string displayValue;
+                    Brush displayBrush;
+
+                    if (!string.IsNullOrEmpty(forexEvent.Result))
+                    {
+                        displayValue = forexEvent.Result;
+                        displayBrush = Brushes.Green;
+                    }
+                    else if (forexEvent.Time.Equals("All Day", StringComparison.OrdinalIgnoreCase))
+                    {
+                        displayValue = "All Day";
+                        displayBrush = Brushes.Cyan;
+                    }
+                    else
+                    {
+                        displayValue = "Pending";
+                        displayBrush = Brushes.Yellow;
+                    }
+
+                    gr.DrawString(displayValue, font, displayBrush, x + 400, y + 2);
+
                     y += font.Height + 6;
                 }
             }
         }
-
         private DateTime ParseEventDateTimeForSorting(string timeString)
         {
             DateTime baseDate = DateTime.Today;
@@ -216,24 +244,8 @@ namespace EconomicEventsIndicator
 
         public override void Dispose()
         {
-            font.Dispose();
+            font?.Dispose();
             base.Dispose();
-        }
-
-        protected override void OnSettingsUpdated()
-        {
-            base.OnSettingsUpdated();
-            Refresh();
-        }
-
-        public override IList<SettingItem> Settings
-        {
-            get => settingsManager.GetSettings();
-            set
-            {
-                settingsManager.UpdateSettings(value);
-                Refresh();
-            }
         }
 
         private void Refresh()

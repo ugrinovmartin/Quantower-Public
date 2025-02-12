@@ -4,192 +4,197 @@ using TradingPlatform.BusinessLayer;
 
 namespace EconomicEventsIndicator
 {
-    public class SettingsManager
+    public partial class EconomicEventsIndicator
     {
-        private EconomicEventsIndicator indicator;
-
-        public SettingsManager(EconomicEventsIndicator indicator)
+        public override IList<SettingItem> Settings
         {
-            this.indicator = indicator;
-        }
+            get
+            {
+                var settings = base.Settings;
 
-        public IList<SettingItem> GetSettings()
-        {
-            var settings = indicator.Settings;
+                var chartDateSelector = new SelectItem("Current Chart Date", 1);
+                var customDateSelector = new SelectItem("Custom Date", 2);
 
-            var chartDateSelector = new SelectItem("Current Chart Date", 1);
-            var customDateSelector = new SelectItem("Custom Date", 2);
-
-            settings.Add(new SettingItemSelectorLocalized("dateMode", new SelectItem("dateMode", indicator.dateMode), new List<SelectItem>
-                     {
+                AddSettingWithConfirmation(settings,
+                    new SettingItemSelectorLocalized("dateMode",
+                    new SelectItem("dateMode", dateMode),
+                    [
                         chartDateSelector,
                         customDateSelector
-                     })
-            {
-                Text = "Select Date:"
-            });
+                    ])
+                    {
+                        Text = "Select Date:"
+                    });
 
-            settings.Add(new SettingItemDateTime("customStartDate", indicator.customStartDate)
-            {
-                Text = "From Date",
-                Relation = new SettingItemRelationVisibility("dateMode", customDateSelector)
-            });
+                AddSettingWithConfirmation(settings, new SettingItemDateTime("customStartDate", customStartDate)
+                {
+                    Text = "From Date",
+                    Relation = new SettingItemRelationVisibility("dateMode", customDateSelector)
+                });
 
-            settings.Add(new SettingItemDateTime("customEndDate", indicator.customEndDate)
-            {
-                Text = "To Date",
-                Relation = new SettingItemRelationVisibility("dateMode", customDateSelector)
-            });
+                AddSettingWithConfirmation(settings, new SettingItemDateTime("customEndDate", customEndDate)
+                {
+                    Text = "To Date",
+                    Relation = new SettingItemRelationVisibility("dateMode", customDateSelector)
+                });
 
-            settings.Add(new SettingItemBoolean("highImpact", indicator.highImpact)
-            {
-                Text = "High Impact"
-            });
-            settings.Add(new SettingItemBoolean("mediumImpact", indicator.mediumImpact)
-            {
-                Text = "Medium Impact"
-            });
-            settings.Add(new SettingItemBoolean("lowImpact", indicator.lowImpact)
-            {
-                Text = "Low Impact"
-            });
-            settings.Add(new SettingItemBoolean("nonEconomicNews", indicator.nonEconomicNews)
-            {
-                Text = "Non-Economic Events"
-            });
+                // Impact Settings
+                AddSettingWithConfirmation(settings, new SettingItemBoolean("highImpact", highImpact)
+                {
+                    Text = "High Impact"
+                });
 
-            var allCurrenciesSelector = new SelectItem("All", 1);
-            var selectCurrencySelector = new SelectItem("Select Currency", 2);
+                AddSettingWithConfirmation(settings, new SettingItemBoolean("mediumImpact", mediumImpact)
+                {
+                    Text = "Medium Impact"
+                });
 
-            settings.Add(new SettingItemSelectorLocalized("currencyMode", new SelectItem("currencyMode", indicator.currencyMode), new List<SelectItem>
-                     {
+                AddSettingWithConfirmation(settings, new SettingItemBoolean("lowImpact", lowImpact)
+                {
+                    Text = "Low Impact"
+                });
+
+                AddSettingWithConfirmation(settings, new SettingItemBoolean("nonEconomicNews", nonEconomicNews)
+                {
+                    Text = "Non-Economic Events"
+                });
+
+                // Currency Settings
+                var allCurrenciesSelector = new SelectItem("All", 1);
+                var selectCurrencySelector = new SelectItem("Select Currency", 2);
+
+                AddSettingWithConfirmation(settings,
+                    new SettingItemSelectorLocalized("currencyMode",
+                    new SelectItem("currencyMode", currencyMode),
+                    [
                         allCurrenciesSelector,
                         selectCurrencySelector
-                     })
-            {
-                Text = "Currency:"
-            });
+                    ])
+                    {
+                        Text = "Currency:"
+                    });
 
-            settings.Add(new SettingItemBoolean("usdSelected", indicator.usdSelected)
-            {
-                Text = "USD",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("eurSelected", indicator.eurSelected)
-            {
-                Text = "EUR",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("audSelected", indicator.audSelected)
-            {
-                Text = "AUD",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("cadSelected", indicator.cadSelected)
-            {
-                Text = "CAD",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("chfSelected", indicator.chfSelected)
-            {
-                Text = "CHF",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("cnySelected", indicator.cnySelected)
-            {
-                Text = "CNY",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("gbpSelected", indicator.gbpSelected)
-            {
-                Text = "GBP",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("jpySelected", indicator.jpySelected)
-            {
-                Text = "JPY",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
-            settings.Add(new SettingItemBoolean("nzdSelected", indicator.nzdSelected)
-            {
-                Text = "NZD",
-                Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
-            });
+                var currencySettings = new (string name, string text, bool value)[]
+                {
+                    ("usdSelected", "USD", usdSelected),
+                    ("eurSelected", "EUR", eurSelected),
+                    ("audSelected", "AUD", audSelected),
+                    ("cadSelected", "CAD", cadSelected),
+                    ("chfSelected", "CHF", chfSelected),
+                    ("cnySelected", "CNY", cnySelected),
+                    ("gbpSelected", "GBP", gbpSelected),
+                    ("jpySelected", "JPY", jpySelected),
+                    ("nzdSelected", "NZD", nzdSelected)
+                };
 
-            settings.Add(new SettingItemSelectorLocalized("timeZoneMode", new SelectItem("timeZoneMode", indicator.timeZoneMode), new List<SelectItem>
-                     {
+                foreach (var currency in currencySettings)
+                {
+                    AddSettingWithConfirmation(settings, new SettingItemBoolean(currency.name, currency.value)
+                    {
+                        Text = currency.text,
+                        Relation = new SettingItemRelationVisibility("currencyMode", selectCurrencySelector)
+                    });
+                }
+
+                // Timezone Settings
+                AddSettingWithConfirmation(settings,
+                    new SettingItemSelectorLocalized("timeZoneMode",
+                    new SelectItem("timeZoneMode", timeZoneMode),
+                    [
                         new SelectItem("Current Chart Timezone", 1),
                         new SelectItem("System Timezone", 2)
-                     })
-            {
-                Text = "Time Zone:"
-            });
+                    ])
+                    {
+                        Text = "Time Zone:"
+                    });
 
-            settings.Add(new SettingItemInteger("newsPositionX", indicator.newsPositionX)
-            {
-                Text = "Move Left/Right (-/+)"
-            });
+                // Position Settings
+                AddSettingWithConfirmation(settings, new SettingItemInteger("newsPositionX", newsPositionX)
+                {
+                    Text = "Move Left/Right (-/+)"
+                });
 
-            settings.Add(new SettingItemInteger("newsPositionY", indicator.newsPositionY)
-            {
-                Text = "Move Up/Down (-/+)"
-            });
+                AddSettingWithConfirmation(settings, new SettingItemInteger("newsPositionY", newsPositionY)
+                {
+                    Text = "Move Up/Down (-/+)"
+                });
 
-            return settings;
+                return settings;
+            }
+            set
+            {
+                if (value.TryGetValue("dateMode", out int dateModeValue))
+                    dateMode = dateModeValue;
+
+                if (value.TryGetValue("customStartDate", out DateTime customStartDateValue))
+                    customStartDate = customStartDateValue;
+
+                if (value.TryGetValue("customEndDate", out DateTime customEndDateValue))
+                    customEndDate = customEndDateValue;
+
+                if (value.TryGetValue("highImpact", out bool highImpactValue))
+                    highImpact = highImpactValue;
+
+                if (value.TryGetValue("mediumImpact", out bool mediumImpactValue))
+                    mediumImpact = mediumImpactValue;
+
+                if (value.TryGetValue("lowImpact", out bool lowImpactValue))
+                    lowImpact = lowImpactValue;
+
+                if (value.TryGetValue("nonEconomicNews", out bool nonEconomicNewsValue))
+                    nonEconomicNews = nonEconomicNewsValue;
+
+                if (value.TryGetValue("currencyMode", out int currencyModeValue))
+                    currencyMode = currencyModeValue;
+
+                if (value.TryGetValue("audSelected", out bool audSelectedValue))
+                    audSelected = audSelectedValue;
+
+                if (value.TryGetValue("cadSelected", out bool cadSelectedValue))
+                    cadSelected = cadSelectedValue;
+
+                if (value.TryGetValue("chfSelected", out bool chfSelectedValue))
+                    chfSelected = chfSelectedValue;
+
+                if (value.TryGetValue("cnySelected", out bool cnySelectedValue))
+                    cnySelected = cnySelectedValue;
+
+                if (value.TryGetValue("eurSelected", out bool eurSelectedValue))
+                    eurSelected = eurSelectedValue;
+
+                if (value.TryGetValue("gbpSelected", out bool gbpSelectedValue))
+                    gbpSelected = gbpSelectedValue;
+
+                if (value.TryGetValue("jpySelected", out bool jpySelectedValue))
+                    jpySelected = jpySelectedValue;
+
+                if (value.TryGetValue("nzdSelected", out bool nzdSelectedValue))
+                    nzdSelected = nzdSelectedValue;
+
+                if (value.TryGetValue("usdSelected", out bool usdSelectedValue))
+                    usdSelected = usdSelectedValue;
+
+                if (value.TryGetValue("timeZoneMode", out int timeZoneModeValue))
+                {
+                    timeZoneMode = timeZoneModeValue;
+                    CurrentChart.Refresh();
+                }
+
+                if (value.TryGetValue("newsPositionX", out int newsPositionXValue))
+                    newsPositionX = newsPositionXValue;
+
+                if (value.TryGetValue("newsPositionY", out int newsPositionYValue))
+                    newsPositionY = newsPositionYValue;
+
+
+                Refresh();
+            }
         }
 
-        public void UpdateSettings(IList<SettingItem> settings)
+        private void AddSettingWithConfirmation(IList<SettingItem> settings, SettingItem settingItem)
         {
-            if (settings.TryGetValue("dateMode", out int dateModeValue))
-                indicator.dateMode = dateModeValue;
-
-            if (settings.TryGetValue("customStartDate", out DateTime customStartDateValue))
-                indicator.customStartDate = customStartDateValue;
-
-            if (settings.TryGetValue("customEndDate", out DateTime customEndDateValue))
-                indicator.customEndDate = customEndDateValue;
-
-            if (settings.TryGetValue("highImpact", out bool highImpactValue))
-                indicator.highImpact = highImpactValue;
-            if (settings.TryGetValue("mediumImpact", out bool mediumImpactValue))
-                indicator.mediumImpact = mediumImpactValue;
-            if (settings.TryGetValue("lowImpact", out bool lowImpactValue))
-                indicator.lowImpact = lowImpactValue;
-            if (settings.TryGetValue("nonEconomicNews", out bool nonEconomicNewsValue))
-                indicator.nonEconomicNews = nonEconomicNewsValue;
-
-            if (settings.TryGetValue("currencyMode", out int currencyModeValue))
-                indicator.currencyMode = currencyModeValue;
-
-            if (settings.TryGetValue("audSelected", out bool audSelectedValue))
-                indicator.audSelected = audSelectedValue;
-            if (settings.TryGetValue("cadSelected", out bool cadSelectedValue))
-                indicator.cadSelected = cadSelectedValue;
-            if (settings.TryGetValue("chfSelected", out bool chfSelectedValue))
-                indicator.chfSelected = chfSelectedValue;
-            if (settings.TryGetValue("cnySelected", out bool cnySelectedValue))
-                indicator.cnySelected = cnySelectedValue;
-            if (settings.TryGetValue("eurSelected", out bool eurSelectedValue))
-                indicator.eurSelected = eurSelectedValue;
-            if (settings.TryGetValue("gbpSelected", out bool gbpSelectedValue))
-                indicator.gbpSelected = gbpSelectedValue;
-            if (settings.TryGetValue("jpySelected", out bool jpySelectedValue))
-                indicator.jpySelected = jpySelectedValue;
-            if (settings.TryGetValue("nzdSelected", out bool nzdSelectedValue))
-                indicator.nzdSelected = nzdSelectedValue;
-            if (settings.TryGetValue("usdSelected", out bool usdSelectedValue))
-                indicator.usdSelected = usdSelectedValue;
-
-            if (settings.TryGetValue("timeZoneMode", out int timeZoneModeValue))
-                indicator.timeZoneMode = timeZoneModeValue;
-
-            if (settings.TryGetValue("newsPositionX", out int newsPositionXValue))
-                indicator.newsPositionX = newsPositionXValue;
-
-            if (settings.TryGetValue("newsPositionY", out int newsPositionYValue))
-                indicator.newsPositionY = newsPositionYValue;
-
-            indicator.Refresh();
+            settingItem.ValueChangingBehavior = SettingItemValueChangingBehavior.WithConfirmation;
+            settings.Add(settingItem);
         }
     }
 }

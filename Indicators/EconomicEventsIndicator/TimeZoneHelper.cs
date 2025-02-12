@@ -1,29 +1,74 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using TradingPlatform.BusinessLayer;
 
 namespace EconomicEventsIndicator
 {
     public static class TimeZoneHelper
     {
-        public static TimeZoneInfo GetTimeZoneFromChart(string timeZoneString)
+        public static double GetOffsetHours(TradingPlatform.BusinessLayer.TimeZone chartTimeZone)
         {
-            var match = Regex.Match(timeZoneString, @"\(UTC([+-]\d{2}:\d{2})\)");
+            string timeZoneString = chartTimeZone.ToString();
+            var match = Regex.Match(timeZoneString, @"\(UTC([+-])(\d{2}):(\d{2})\)");
+
             if (match.Success)
             {
-                string offset = match.Groups[1].Value;
-                return TimeZoneInfo.CreateCustomTimeZone("Custom TimeZone", TimeSpan.Parse(offset), timeZoneString, timeZoneString);
+                string sign = match.Groups[1].Value;
+                int hours = int.Parse(match.Groups[2].Value);
+                int minutes = int.Parse(match.Groups[3].Value);
+
+                double offset = hours + (minutes / 60.0);
+                return sign == "+" ? offset : -offset;
             }
-            return TimeZoneInfo.Local;
+
+            return 0;
         }
 
-        public static ForexEvent AdjustEventTime(ForexEvent forexEvent, TimeZoneInfo timeZone)
+        public static ForexEvent AdjustEventTime(ForexEvent forexEvent, double chartOffsetHours)
         {
-            if (DateTime.TryParse(forexEvent.Time, out DateTime eventTime))
+            if (forexEvent.Time.Equals("All Day", StringComparison.OrdinalIgnoreCase))
+                return forexEvent;
+
+            try
             {
-                DateTime adjustedTime = TimeZoneInfo.ConvertTime(eventTime, TimeZoneInfo.Utc, timeZone);
-                forexEvent.Time = adjustedTime.ToString("HH:mm");
+                bool parseSuccess = DateTime.TryParseExact(
+                    forexEvent.Time,
+                    "h:mmtt",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out DateTime parsedTime);
+
+                if (!parseSuccess)
+                {
+                    return forexEvent;
+                }
+
+                double localOffset = TimeZoneInfo.Local.BaseUtcOffset.TotalHours;
+
+                var utcTime = parsedTime.AddHours(-localOffset);
+
+                var targetTime = utcTime.AddHours(chartOffsetHours);
+
+                forexEvent.Time = targetTime.ToString("h:mmtt");
+
+                if (targetTime.Day != parsedTime.Day)
+                {
+                    if (targetTime < parsedTime)
+                    {
+                        forexEvent.Date = forexEvent.Date.AddDays(-1);
+                    }
+                    else
+                    {
+                        forexEvent.Date = forexEvent.Date.AddDays(1);
+                    }
+                }
+
+                return forexEvent;
             }
-            return forexEvent;
+            catch (Exception ex)
+            {
+                return forexEvent;
+            }
         }
     }
 }

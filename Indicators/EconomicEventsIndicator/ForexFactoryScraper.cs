@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -24,21 +25,16 @@ namespace EconomicEventsIndicator
             }
 
             var html = await response.Content.ReadAsStringAsync();
-
             var htmlDocument = new HtmlDocument();
             htmlDocument.LoadHtml(html);
 
             var eventsTable = htmlDocument.DocumentNode.SelectSingleNode("//table[contains(@class, 'calendar__table')]");
             if (eventsTable == null)
-            {
                 return new List<ForexEvent>();
-            }
 
             var rows = eventsTable.SelectNodes(".//tr[contains(@class, 'calendar__row')]");
             if (rows == null)
-            {
                 return new List<ForexEvent>();
-            }
 
             var events = new List<ForexEvent>();
             string lastTime = null;
@@ -49,22 +45,23 @@ namespace EconomicEventsIndicator
                 var currencyNode = row.SelectSingleNode(".//td[contains(@class, 'calendar__currency')]");
                 var eventNode = row.SelectSingleNode(".//td[contains(@class, 'calendar__event')]");
                 var impactNode = row.SelectSingleNode(".//td[contains(@class, 'calendar__impact')]//span");
+                var actualNode = row.SelectSingleNode(".//td[contains(@class, 'calendar__actual')]");
 
                 string eventDescription = eventNode?.InnerText.Trim();
                 if (string.IsNullOrWhiteSpace(eventDescription))
-                {
                     continue;
-                }
 
                 string time = timeNode?.InnerText.Trim();
                 if (string.IsNullOrWhiteSpace(time))
-                {
                     time = lastTime;
-                }
                 else
-                {
                     lastTime = time;
-                }
+
+                string result = actualNode?.InnerText.Trim() ?? "";
+
+                EventStatus status = EventStatus.Upcoming;
+                if (!string.IsNullOrEmpty(result))
+                    status = EventStatus.Completed;
 
                 string impact = "Unknown Impact";
                 if (impactNode != null)
@@ -78,7 +75,9 @@ namespace EconomicEventsIndicator
                     Time = time,
                     Currency = currencyNode?.InnerText.Trim(),
                     Event = eventDescription,
-                    Impact = impact
+                    Impact = impact,
+                    Status = status,
+                    Result = result
                 };
 
                 events.Add(forexEvent);
