@@ -2,7 +2,7 @@ using TradingPlatform.BusinessLayer;
 using System;
 using System.Drawing;
 
-namespace CustomIndicators.KernelIndicators
+namespace KernelSmoothers
 {
     public sealed class LevyKernelIndicator : Indicator, IWatchlistIndicator
     {
@@ -10,10 +10,10 @@ namespace CustomIndicators.KernelIndicators
         public int Period = 20;
 
         [InputParameter("Mu (location parameter)", 1, -9999, 9999, 0.01, 0)]
-        public int Mu = 0;
+        public double Mu = 0;
 
         [InputParameter("C (scale parameter)", 2, 0.0001, 9999, 0.01, 0)]
-        public int C = 1;
+        public double C = 1;
 
         [InputParameter("Start at Bar", 3, 1, 9999, 1, 0)]
         public int StartAtBar = 25;
@@ -35,8 +35,9 @@ namespace CustomIndicators.KernelIndicators
 
         public LevyKernelIndicator() : base()
         {
-            this.Name = "Levy Kernel";
-            this.Description = "Applies the Levy Kernel to price data.";
+            this.Name = "Levy Kernel Smoother";
+            this.Description = "Applies a Levy kernel based smoothing to price data.";
+
             this.AddLineSeries("Levy Kernel Line", Color.Cyan, 1, LineStyle.Solid);
             this.SeparateWindow = false;
         }

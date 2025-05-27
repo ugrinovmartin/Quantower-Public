@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using TradingPlatform.BusinessLayer;
 
-namespace CustomIndicators.KernelIndicators
+namespace KernelSmoothers
 {
     public sealed class Gaussian_Kernel : Indicator, IWatchlistIndicator
     {
@@ -30,7 +30,9 @@ namespace CustomIndicators.KernelIndicators
         {
             Name = "Gaussian_Kernel";
             Description = "Gaussian Kernel Indicator";
+            
             AddLineSeries("Gaussian Kernel Line", Color.CadetBlue, 2, LineStyle.Solid);
+
             SeparateWindow = false;
         }
 

@@ -2,20 +2,20 @@ using System;
 using System.Drawing;
 using TradingPlatform.BusinessLayer;
 
-namespace CustomIndicators
+namespace KernelSmoothers
 {
-    public class RationalQuadraticKernelIndicator : Indicator
+    public class PeriodicKernelIndicator : Indicator
     {
-        [InputParameter("Lookback Period", 0, 1, 999, 1, 0)]
-        public int Period = 14;
+        [InputParameter("Length scale", 0, 1, 999, 1, 0)]
+        public int LookbackPeriod = 14;
 
-        [InputParameter("Relative Weight (alpha)", 1, 0.01, 100, 0.01, 0)]
-        public float RelativeWeight = 1;
+        [InputParameter("Period", 1, 1, 999, 1, 0)]
+        public int Period = 14;
 
         [InputParameter("Start at Bar", 2, 0, 999, 1, 0)]
         public int StartAtBar = 0;
 
-        [InputParameter("Source Price", 4, variants:
+        [InputParameter("Source Price", 3, variants:
          [
             "Close",
              PriceType.Close,
@@ -36,29 +36,28 @@ namespace CustomIndicators
          ])]
         public PriceType SourcePrice = PriceType.Close;
 
-        public int MinHistoryDepths => this.Period;
-
-        public RationalQuadraticKernelIndicator() : base()
+        public PeriodicKernelIndicator() : base()
         {
-            this.Name = "Rational Quadratic Kernel";
-            this.Description = "An indicator that implements the Rational Quadratic Kernel.";
+            this.Name = "Periodic Kernel Smoother";
+            this.Description = "Smooths price data using a periodic kernel based on sine-squared decay.";
 
-            this.AddLineSeries("RQK Line", Color.LightCoral, 2, LineStyle.Solid);
+            this.AddLineSeries("PK Line", Color.LightGreen, 2, LineStyle.Solid);
             this.SeparateWindow = false;
         }
 
         protected override void OnUpdate(UpdateArgs args)
         {
-            if (this.Count < Period + StartAtBar)
+            if (this.Count < LookbackPeriod + StartAtBar)
                 return;
 
             double currentWeight = 0.0;
             double cumulativeWeight = 0.0;
 
-            for (int i = StartAtBar; i < Period + StartAtBar; i++)
+            for (int i = 0; i < LookbackPeriod; i++)
             {
                 double y = this.GetPrice(SourcePrice, this.Count - 1 - i);
-                double w = Math.Pow(1 + (Math.Pow(i, 2) / (2 * RelativeWeight * Math.Pow(Period, 2))), -RelativeWeight);
+                double sinPart = Math.Sin(Math.PI * i / Period);
+                double w = Math.Exp(-2 * Math.Pow(sinPart, 2) / Math.Pow(LookbackPeriod, 2));
                 currentWeight += y * w;
                 cumulativeWeight += w;
             }
